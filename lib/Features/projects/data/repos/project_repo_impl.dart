@@ -112,7 +112,7 @@ class ProjectRepoImpl implements ProjectRepo {
   }
 
   @override
-  Future<Either<Failure, MilestoneModel>> updateMilestoneStatus({
+  Future<Either<Failure, void>> updateMilestoneStatus({
     required String projectId,
     required String milestoneId,
     required String status,
@@ -122,16 +122,13 @@ class ProjectRepoImpl implements ProjectRepo {
         EndPoints.kProjectMilestoneStatus(projectId, milestoneId),
         body: {'status': status},
       );
-      final apiResponse = ApiResponse<MilestoneModel>.fromJson(
-        response,
-        (data) => MilestoneModel.fromJson(data as Map<String, dynamic>),
-      );
-      if (!apiResponse.success || apiResponse.data == null) {
+      final apiResponse = ApiResponse<void>.fromJson(response, null);
+      if (!apiResponse.success) {
         return left(
           ServerFailure(apiResponse.message ?? 'Failed to update status'),
         );
       }
-      return right(apiResponse.data!);
+      return right(null);
     } on DioException catch (e) {
       return left(ServerFailure.fromDioError(e));
     }
@@ -327,13 +324,13 @@ class ProjectRepoImpl implements ProjectRepo {
           'paidAt': paidAt.toUtc().toIso8601String(),
         },
       );
-    final apiResponse = ApiResponse<void>.fromJson(response, null);
+      final apiResponse = ApiResponse<void>.fromJson(response, null);
 
-    if (!apiResponse.success) {
-      return left(
-        ServerFailure(apiResponse.message ?? 'Failed to log expense'),
-      );
-    }
+      if (!apiResponse.success) {
+        return left(
+          ServerFailure(apiResponse.message ?? 'Failed to log expense'),
+        );
+      }
       return const Right(null);
     } on DioException catch (e) {
       return left(ServerFailure.fromDioError(e));

@@ -37,6 +37,7 @@ class _BuyerHomeViewState extends State<BuyerHomeView> {
   final titles = [
     AppStrings.home.tr().capitalize(),
     'Marketplace',
+      'Projects',                        
     'Invest',
     'My Offers',
     AppStrings.profile.tr().capitalize(),

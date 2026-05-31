@@ -19,7 +19,7 @@ abstract class ProjectRepo {
     required String title,
     String? description,
   });
-  Future<Either<Failure, MilestoneModel>> updateMilestoneStatus({
+  Future<Either<Failure,void >> updateMilestoneStatus({
     required String projectId,
     required String milestoneId,
     required String status,

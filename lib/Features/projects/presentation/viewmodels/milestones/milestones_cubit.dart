@@ -87,35 +87,35 @@ class MilestonesCubit extends Cubit<MilestonesState> {
     );
   }
 
-  Future<void> updateStatus({
-    required String projectId,
-    required String milestoneId,
-    required String newStatus,
-  }) async {
-    _updatingId = milestoneId;
-    _emitLoaded();
+Future<void> updateStatus({
+  required String projectId,
+  required String milestoneId,
+  required String newStatus,
+}) async {
+  _updatingId = milestoneId;
+  _emitLoaded();
 
-    final result = await repo.updateMilestoneStatus(
-      projectId: projectId,
-      milestoneId: milestoneId,
-      status: newStatus,
-    );
-    result.fold(
-      (failure) {
-        _updatingId = null;
-        emit(MilestonesTransientError(failure.errMessage));
-        _emitLoaded();
-      },
-      (updated) {
-        _updatingId = null;
-        _milestones = _milestones
-            .map((m) => m.id == updated.id ? updated : m)
-            .toList();
-        _emitLoaded();
-      },
-    );
-  }
+  final result = await repo.updateMilestoneStatus(
+    projectId: projectId,
+    milestoneId: milestoneId,
+    status: newStatus,
+  );
 
+  result.fold(
+    (failure) {
+      _updatingId = null;
+      emit(MilestonesTransientError(failure.errMessage));
+      _emitLoaded();
+    },
+    (_) async {
+      _updatingId = null;
+      _emitLoaded();
+
+      // Reload milestones from server
+      await refresh(projectId);
+    },
+  );
+}
   void _emitLoaded() {
     emit(
       MilestonesLoadedState(
