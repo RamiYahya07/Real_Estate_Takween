@@ -25,7 +25,9 @@ class UnitsCubit extends Cubit<UnitsState> {
   Future<void> _loadIdentity() async {
     if (_identityLoaded) return;
     _currentUserId = await storage.getUserId();
+    if (isClosed) return;
     final role = roleFromString(await storage.getRole());
+    if (isClosed) return;
     _isLandOwner = role == Roles.LandOwner;
     _isContractor = role == Roles.Contractor;
     _identityLoaded = true;
@@ -36,6 +38,7 @@ class UnitsCubit extends Cubit<UnitsState> {
     await _loadIdentity();
 
     final result = await repo.getUnits(projectId);
+    if (isClosed) return;
     result.fold(
       (failure) => emit(UnitsFailureState(failure.errMessage)),
       (units) {
@@ -45,17 +48,25 @@ class UnitsCubit extends Cubit<UnitsState> {
     );
   }
 
-  Future<void> refresh(String projectId) async {
-    final result = await repo.getUnits(projectId);
-    result.fold(
-      (failure) => emit(UnitsTransientError(failure.errMessage)),
-      (units) {
-        _units = units;
-        _emitLoaded();
-      },
-    );
-  }
+Future<void> refresh(String projectId) async {
+  final result = await repo.getUnits(projectId);
 
+  if (isClosed) return;
+
+  result.fold(
+    (failure) {
+      if (isClosed) return;
+        emit(UnitsTransientError(failure.errMessage));
+      
+    },
+    (units) {
+      if (isClosed) return;
+
+      _units = units;
+      _emitLoaded();
+    },
+  );
+}
   Future<void> createUnits({
     required String projectId,
     required List<Map<String, dynamic>> units,
@@ -69,17 +80,22 @@ class UnitsCubit extends Cubit<UnitsState> {
     _isCreating = true;
     _emitLoaded();
 
-    final result =
-        await repo.createUnits(projectId: projectId, units: units);
+final result =
+    await repo.createUnits(projectId: projectId, units: units);
+
+if (isClosed) return;
     final failureMsg =
         result.fold<String?>((f) => f.errMessage, (_) => null);
 
     _isCreating = false;
-    if (failureMsg != null) {
-      emit(UnitsTransientError(failureMsg));
-      _emitLoaded();
-      return;
-    }
+
+if (isClosed) return;
+
+if (failureMsg != null) {
+  emit(UnitsTransientError(failureMsg));
+  _emitLoaded();
+  return;
+}
 
     await refresh(projectId);
   }
@@ -88,9 +104,11 @@ class UnitsCubit extends Cubit<UnitsState> {
     _isAllocating = true;
     _emitLoaded();
 
-    final result = await repo.allocateUnits(projectId);
+final result = await repo.allocateUnits(projectId);
 
-    _isAllocating = false;
+if (isClosed) return;
+
+_isAllocating = false;
     result.fold(
       (failure) {
         emit(UnitsTransientError(failure.errMessage));
@@ -105,17 +123,19 @@ class UnitsCubit extends Cubit<UnitsState> {
     );
   }
 
-  void _emitLoaded() {
-    emit(
-      UnitsLoadedState(
-        units: List.unmodifiable(_units),
-        isLandOwner: _isLandOwner,
-        isContractor: _isContractor,
-        currentUserId: _currentUserId,
-        isCreating: _isCreating,
-        isAllocating: _isAllocating,
-        lastAllocation: _lastAllocation,
-      ),
-    );
-  }
+void _emitLoaded() {
+  if (isClosed) return;
+
+  emit(
+    UnitsLoadedState(
+      units: List.unmodifiable(_units),
+      isLandOwner: _isLandOwner,
+      isContractor: _isContractor,
+      currentUserId: _currentUserId,
+      isCreating: _isCreating,
+      isAllocating: _isAllocating,
+      lastAllocation: _lastAllocation,
+    ),
+  );
+}
 }

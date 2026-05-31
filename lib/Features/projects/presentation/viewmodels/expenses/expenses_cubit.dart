@@ -20,35 +20,58 @@ class ExpensesCubit extends Cubit<ExpensesState> {
   bool _isAdding = false;
 
   Future<void> _loadIdentity() async {
-    if (_identityLoaded) return;
+    if (_identityLoaded || isClosed) return;
+
     _currentUserId = await storage.getUserId();
+    if (isClosed) return;
+
     final role = roleFromString(await storage.getRole());
+    if (isClosed) return;
+
     _isLandOwner = role == Roles.LandOwner;
     _isContractor = role == Roles.Contractor;
+
     _identityLoaded = true;
   }
 
   Future<void> load(String projectId) async {
     emit(ExpensesLoadingState());
+
     await _loadIdentity();
+    if (isClosed) return;
 
     final result = await repo.getExpenses(projectId);
-    result.fold((failure) => emit(ExpensesFailureState(failure.errMessage)), (
-      expenses,
-    ) {
-      _expenses = expenses;
-      _emitLoaded();
-    });
+    if (isClosed) return;
+
+    result.fold(
+      (failure) {
+        if (isClosed) return;
+        emit(ExpensesFailureState(failure.errMessage));
+      },
+      (expenses) {
+        if (isClosed) return;
+        _expenses = expenses;
+        _emitLoaded();
+      },
+    );
   }
 
   Future<void> refresh(String projectId) async {
     final result = await repo.getExpenses(projectId);
-    result.fold((failure) => emit(ExpensesTransientError(failure.errMessage)), (
-      expenses,
-    ) {
-      _expenses = expenses;
-      _emitLoaded();
-    });
+
+    if (isClosed) return;
+
+    result.fold(
+      (failure) {
+        if (isClosed) return;
+        emit(ExpensesTransientError(failure.errMessage));
+      },
+      (expenses) {
+        if (isClosed) return;
+        _expenses = expenses;
+        _emitLoaded();
+      },
+    );
   }
 
   Future<void> addExpense({
@@ -59,13 +82,18 @@ class ExpensesCubit extends Cubit<ExpensesState> {
     required DateTime paidAt,
   }) async {
     if (amountUsd <= 0) {
-      emit(ExpensesTransientError('Amount must be greater than 0'));
-      _emitLoaded();
+      if (!isClosed) {
+        emit(ExpensesTransientError('Amount must be greater than 0'));
+        _emitLoaded();
+      }
       return;
     }
+
     if (description.trim().isEmpty) {
-      emit(ExpensesTransientError('Description is required'));
-      _emitLoaded();
+      if (!isClosed) {
+        emit(ExpensesTransientError('Description is required'));
+        _emitLoaded();
+      }
       return;
     }
 
@@ -81,12 +109,17 @@ class ExpensesCubit extends Cubit<ExpensesState> {
     );
 
     _isAdding = false;
+
+    if (isClosed) return;
+
     result.fold(
       (failure) {
+        if (isClosed) return;
         emit(ExpensesTransientError(failure.errMessage));
         _emitLoaded();
       },
       (_) async {
+        if (isClosed) return;
         _emitLoaded();
         await refresh(projectId);
       },
@@ -94,6 +127,8 @@ class ExpensesCubit extends Cubit<ExpensesState> {
   }
 
   void _emitLoaded() {
+    if (isClosed) return;
+
     emit(
       ExpensesLoadedState(
         expenses: List.unmodifiable(_expenses),

@@ -12,7 +12,7 @@ class ShareListingsCubit extends Cubit<ShareListingsState> {
   final SecureStorageService storage;
 
   ShareListingsCubit(this.repo, this.paymentRepo, this.storage)
-      : super(ShareListingsInitialState());
+    : super(ShareListingsInitialState());
 
   String? _currentUserId;
   bool _isLandOwner = false;
@@ -26,22 +26,36 @@ class ShareListingsCubit extends Cubit<ShareListingsState> {
 
   Future<void> _loadIdentity() async {
     if (_identityLoaded) return;
+
     _currentUserId = await storage.getUserId();
+    if (isClosed) return;
+
     final role = roleFromString(await storage.getRole());
+    if (isClosed) return;
+
     _isLandOwner = role == Roles.LandOwner;
     _isContractor = role == Roles.Contractor;
     _isBuyer = role == Roles.Buyer;
+
     _identityLoaded = true;
   }
 
   Future<void> load(String projectId) async {
     emit(ShareListingsLoadingState());
+
     await _loadIdentity();
+    if (isClosed) return;
 
     final result = await repo.getShareListings(projectId);
+    if (isClosed) return;
+
     result.fold(
-      (failure) => emit(ShareListingsFailureState(failure.errMessage)),
+      (failure) {
+        if (isClosed) return;
+        emit(ShareListingsFailureState(failure.errMessage));
+      },
       (listings) {
+        if (isClosed) return;
         _listings = listings;
         _emitLoaded();
       },
@@ -50,9 +64,15 @@ class ShareListingsCubit extends Cubit<ShareListingsState> {
 
   Future<void> refresh(String projectId) async {
     final result = await repo.getShareListings(projectId);
+    if (isClosed) return;
+
     result.fold(
-      (failure) => emit(ShareListingsTransientError(failure.errMessage)),
+      (failure) {
+        if (isClosed) return;
+        emit(ShareListingsTransientError(failure.errMessage));
+      },
       (listings) {
+        if (isClosed) return;
         _listings = listings;
         _emitLoaded();
       },
@@ -69,6 +89,7 @@ class ShareListingsCubit extends Cubit<ShareListingsState> {
       _emitLoaded();
       return;
     }
+
     if (pricePerShareUsd <= 0) {
       emit(ShareListingsTransientError('Price must be greater than 0'));
       _emitLoaded();
@@ -83,15 +104,20 @@ class ShareListingsCubit extends Cubit<ShareListingsState> {
       shareCount: shareCount,
       pricePerShareUsd: pricePerShareUsd,
     );
-    final failureMsg =
-        result.fold<String?>((f) => f.errMessage, (_) => null);
+
+    if (isClosed) return;
 
     _isCreating = false;
+
+    final failureMsg = result.fold<String?>((f) => f.errMessage, (_) => null);
+
     if (failureMsg != null) {
+      if (isClosed) return;
       emit(ShareListingsTransientError(failureMsg));
       _emitLoaded();
       return;
     }
+
     emit(ShareListingsActionSuccess('Shares listed'));
     await refresh(projectId);
   }
@@ -108,14 +134,21 @@ class ShareListingsCubit extends Cubit<ShareListingsState> {
       listingId: listingId,
     );
 
+    if (isClosed) return;
+
     _processingListingId = null;
+
     result.fold(
       (failure) {
+        if (isClosed) return;
         emit(ShareListingsTransientError(failure.errMessage));
         _emitLoaded();
       },
       (session) {
+        if (isClosed) return;
+
         _emitLoaded();
+
         if (session.hasUrl) {
           emit(
             ShareListingsCheckoutReady(
@@ -137,19 +170,33 @@ class ShareListingsCubit extends Cubit<ShareListingsState> {
     required String projectId,
   }) async {
     final result = await paymentRepo.reprocess(paymentId);
+
+    if (isClosed) return;
+
     result.fold(
       (failure) {
+        if (isClosed) return;
         emit(ShareListingsTransientError(failure.errMessage));
         _emitLoaded();
       },
       (res) {
+        if (isClosed) return;
+
         if (res.completed) {
-          emit(ShareListingsActionSuccess('Payment confirmed — shares transferred'));
+          emit(
+            ShareListingsActionSuccess(
+              'Payment confirmed — shares transferred',
+            ),
+          );
         } else {
-          emit(ShareListingsTransientError(
-            res.message ?? 'Payment not completed yet. Try again after paying.',
-          ));
+          emit(
+            ShareListingsTransientError(
+              res.message ??
+                  'Payment not completed yet. Try again after paying.',
+            ),
+          );
         }
+
         refresh(projectId);
       },
     );
@@ -167,13 +214,18 @@ class ShareListingsCubit extends Cubit<ShareListingsState> {
       listingId: listingId,
     );
 
+    if (isClosed) return;
+
     _processingListingId = null;
+
     result.fold(
       (failure) {
+        if (isClosed) return;
         emit(ShareListingsTransientError(failure.errMessage));
         _emitLoaded();
       },
       (_) {
+        if (isClosed) return;
         emit(ShareListingsActionSuccess('Listing cancelled'));
         refresh(projectId);
       },
@@ -181,6 +233,8 @@ class ShareListingsCubit extends Cubit<ShareListingsState> {
   }
 
   void _emitLoaded() {
+    if (isClosed) return;
+
     emit(
       ShareListingsLoadedState(
         listings: List.unmodifiable(_listings),

@@ -21,32 +21,54 @@ class MilestonesCubit extends Cubit<MilestonesState> {
   String? _updatingId;
 
   Future<void> _loadIdentity() async {
-    if (_identityLoaded) return;
+    if (_identityLoaded || isClosed) return;
+
     _currentUserId = await storage.getUserId();
+    if (isClosed) return;
+
     final role = roleFromString(await storage.getRole());
+    if (isClosed) return;
+
     _isLandOwner = role == Roles.LandOwner;
     _isContractor = role == Roles.Contractor;
+
     _identityLoaded = true;
   }
 
   Future<void> load(String projectId) async {
     emit(MilestonesLoadingState());
+
     await _loadIdentity();
+    if (isClosed) return;
 
     final result = await repo.getMilestones(projectId);
-    result.fold((failure) => emit(MilestonesFailureState(failure.errMessage)), (
-      milestones,
-    ) {
-      _milestones = milestones;
-      _emitLoaded();
-    });
+    if (isClosed) return;
+
+    result.fold(
+      (failure) {
+        if (isClosed) return;
+        emit(MilestonesFailureState(failure.errMessage));
+      },
+      (milestones) {
+        if (isClosed) return;
+        _milestones = milestones;
+        _emitLoaded();
+      },
+    );
   }
 
   Future<void> refresh(String projectId) async {
     final result = await repo.getMilestones(projectId);
+
+    if (isClosed) return;
+
     result.fold(
-      (failure) => emit(MilestonesTransientError(failure.errMessage)),
+      (failure) {
+        if (isClosed) return;
+        emit(MilestonesTransientError(failure.errMessage));
+      },
       (milestones) {
+        if (isClosed) return;
         _milestones = milestones;
         _emitLoaded();
       },
@@ -59,9 +81,12 @@ class MilestonesCubit extends Cubit<MilestonesState> {
     String? description,
   }) async {
     final trimmedTitle = title.trim();
+
     if (trimmedTitle.isEmpty) {
-      emit(MilestonesTransientError('Title is required'));
-      _emitLoaded();
+      if (!isClosed) {
+        emit(MilestonesTransientError('Title is required'));
+        _emitLoaded();
+      }
       return;
     }
 
@@ -73,50 +98,60 @@ class MilestonesCubit extends Cubit<MilestonesState> {
       title: trimmedTitle,
       description: description?.trim(),
     );
+
+    _isAdding = false;
+
+    if (isClosed) return;
+
     result.fold(
       (failure) {
-        _isAdding = false;
+        if (isClosed) return;
         emit(MilestonesTransientError(failure.errMessage));
         _emitLoaded();
       },
       (_) async {
-        _isAdding = false;
+        if (isClosed) return;
         _emitLoaded();
         await refresh(projectId);
       },
     );
   }
 
-Future<void> updateStatus({
-  required String projectId,
-  required String milestoneId,
-  required String newStatus,
-}) async {
-  _updatingId = milestoneId;
-  _emitLoaded();
+  Future<void> updateStatus({
+    required String projectId,
+    required String milestoneId,
+    required String newStatus,
+  }) async {
+    _updatingId = milestoneId;
+    _emitLoaded();
 
-  final result = await repo.updateMilestoneStatus(
-    projectId: projectId,
-    milestoneId: milestoneId,
-    status: newStatus,
-  );
+    final result = await repo.updateMilestoneStatus(
+      projectId: projectId,
+      milestoneId: milestoneId,
+      status: newStatus,
+    );
 
-  result.fold(
-    (failure) {
-      _updatingId = null;
-      emit(MilestonesTransientError(failure.errMessage));
-      _emitLoaded();
-    },
-    (_) async {
-      _updatingId = null;
-      _emitLoaded();
+    _updatingId = null;
 
-      // Reload milestones from server
-      await refresh(projectId);
-    },
-  );
-}
+    if (isClosed) return;
+
+    result.fold(
+      (failure) {
+        if (isClosed) return;
+        emit(MilestonesTransientError(failure.errMessage));
+        _emitLoaded();
+      },
+      (_) async {
+        if (isClosed) return;
+        _emitLoaded();
+        await refresh(projectId);
+      },
+    );
+  }
+
   void _emitLoaded() {
+    if (isClosed) return;
+
     emit(
       MilestonesLoadedState(
         milestones: List.unmodifiable(_milestones),

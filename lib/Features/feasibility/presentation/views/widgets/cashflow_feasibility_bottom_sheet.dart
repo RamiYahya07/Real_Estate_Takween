@@ -11,7 +11,8 @@ class CashflowFeasibilityBottomSheet extends StatefulWidget {
     required double marketPricePerSqmUsd,
     required double preSalePercent,
     required double constructionPaymentFrontLoadPercent,
-  }) onSubmit;
+  })
+  onSubmit;
 
   const CashflowFeasibilityBottomSheet({
     super.key,
@@ -46,8 +47,7 @@ class _CashflowFeasibilityBottomSheetState
     await widget.onSubmit(
       marketPricePerSqmUsd: double.parse(_marketPrice.text),
       preSalePercent: double.parse(_preSale.text),
-      constructionPaymentFrontLoadPercent:
-          double.parse(_frontLoad.text),
+      constructionPaymentFrontLoadPercent: double.parse(_frontLoad.text),
     );
 
     if (mounted) Navigator.pop(context);
@@ -67,40 +67,49 @@ class _CashflowFeasibilityBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(20.w),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CustomTextFormField(
-              label: 'Market Price Per Sqm',
-              controller: _marketPrice,
-              validator: _validator, hintText: 'e.g. 1000',
-            ),
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 200),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(20.w),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomTextFormField(
+                label: 'Market Price Per Sqm',
+                controller: _marketPrice,
+                validator: _validator,
+                hintText: 'e.g. 1000',
+              ),
 
-            CustomTextFormField(
-              label: 'Pre Sale Percent',
-              controller: _preSale,
-              validator: _validator, hintText: 'e.g. 30',
-            ),
+              CustomTextFormField(
+                label: 'Pre Sale Percent',
+                controller: _preSale,
+                validator: _validator,
+                hintText: 'e.g. 30',
+              ),
 
-            CustomTextFormField(
-              label: 'Construction Payment Front Load %',
-              controller: _frontLoad,
-              validator: _validator, hintText: 'e.g. 40',
-            ),
+              CustomTextFormField(
+                label: 'Construction Payment Front Load %',
+                controller: _frontLoad,
+                validator: _validator,
+                hintText: 'e.g. 40',
+              ),
 
-            SizedBox(height: 16.h),
+              SizedBox(height: 16.h),
 
-            CustomButton(
-              title: 'Run Cashflow',
-              icon: Icons.timeline,
-              color: AppColors.primary,
-              onTap: _submit,
-            ),
-          ],
+              CustomButton(
+                title: 'Run Cashflow',
+                icon: Icons.timeline,
+                color: AppColors.primary,
+                onTap: _submit,
+              ),
+            ],
+          ),
         ),
       ),
     );

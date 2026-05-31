@@ -94,7 +94,7 @@ class MilestoneTile extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6.r),
                         ),
                         child: Text(
-                          '#${milestone.orderIndex + 1}',
+                          '#${milestone.orderIndex }',
                           style: TextStyle(
                             fontSize: 9.sp,
                             color: AppColors.primary,

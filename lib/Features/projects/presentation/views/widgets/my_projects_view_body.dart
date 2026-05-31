@@ -8,6 +8,8 @@ import 'package:takween/Features/projects/presentation/viewmodels/get_my_project
 import 'package:takween/Features/projects/presentation/views/widgets/project_card.dart';
 import 'package:takween/core/router/routes.dart';
 import 'package:takween/core/theme/colors.dart';
+import 'package:takween/core/utils/assets.dart';
+import 'package:takween/core/utils/extensions.dart';
 
 class MyProjectsViewBody extends StatefulWidget {
   const MyProjectsViewBody({super.key});
@@ -25,13 +27,15 @@ class _MyProjectsViewBodyState extends State<MyProjectsViewBody> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<GetMyProjectsCubit, GetMyProjectsState>(
-      builder: (context, state) {
-        if (state is GetMyProjectsLoadingState ||
-            state is GetMyProjectsInitialState) {
-          return const Center(child: CircularProgressIndicator());
+    return BlocConsumer<GetMyProjectsCubit, GetMyProjectsState>(
+      listener: (context, state) {
+        if (state is GetMyProjectsLoadingState) {
+          context.showLoading(animation: AppAssets.kCityScape);
+        } else {
+          context.hideLoading();
         }
-
+      },
+      builder: (context, state) {
         if (state is GetMyProjectsFailureState) {
           return _ErrorView(
             message: state.message,

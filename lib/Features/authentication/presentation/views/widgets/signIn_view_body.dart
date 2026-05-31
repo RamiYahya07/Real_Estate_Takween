@@ -124,19 +124,20 @@ class _SignInViewBodyState extends State<SignInViewBody> {
                 const SizedBox(height: 16),
 
                 /// Password
-                SensitiveContent(
-                  sensitivity: ContentSensitivity.sensitive,
-                  child: PasswordTextFormField(
-                    label: AppStrings.password.tr(),
-                    hintText: "Password123!@#",
-                    validator: (value) => Validators.required(
-                      value,
-                      fieldName: AppStrings.password,
-                    ),
-                    onSaved: (value) => password = value,
+                // SensitiveContent(
+                //   sensitivity: ContentSensitivity.sensitive,
+                // child:
+                PasswordTextFormField( 
+                  label: AppStrings.password.tr(),
+                  hintText: "Password123!@#",
+                  validator: (value) => Validators.required(
+                    value,
+                    fieldName: AppStrings.password,
                   ),
+                  onSaved: (value) => password = value,
                 ),
 
+                // ),   
                 const SizedBox(height: 24),
 
                 /// Sign In Button

@@ -31,85 +31,87 @@ class ProjectDetailsViewBody extends StatelessWidget {
     required this.projectId,
     required this.projectTitle,
   });
-Future<String?> _getRole() {
-  final storage = sl<SecureStorageService>();
-  return storage.getRole();
-}
+  Future<String?> _getRole() {
+    final storage = sl<SecureStorageService>();
+    return storage.getRole();
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<String?>(
-  future: _getRole(),
-  builder: (context, roleSnapshot) {
-    final role = roleSnapshot.data;
+      future: _getRole(),
+      builder: (context, roleSnapshot) {
+        final role = roleSnapshot.data;
 
-    return BlocBuilder<GetProjectDetailsCubit, GetProjectDetailsState>(
-      builder: (context, state) {
-        if (state is GetProjectDetailsLoadingState ||
-            state is GetProjectDetailsInitialState) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        return BlocBuilder<GetProjectDetailsCubit, GetProjectDetailsState>(
+          builder: (context, state) {
+            if (state is GetProjectDetailsLoadingState ||
+                state is GetProjectDetailsInitialState) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        if (state is GetProjectDetailsFailureState) {
-          return _ErrorView(
-            message: state.message,
-            onRetry: () =>
-                context.read<GetProjectDetailsCubit>().load(projectId),
-          );
-        }
+            if (state is GetProjectDetailsFailureState) {
+              return _ErrorView(
+                message: state.message,
+                onRetry: () =>
+                    context.read<GetProjectDetailsCubit>().load(projectId),
+              );
+            }
 
-        if (state is GetProjectDetailsSuccessState) {
-          return RefreshIndicator(
-            onRefresh: () =>
-                context.read<GetProjectDetailsCubit>().refresh(projectId),
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
-              children: [
-                _HeaderCard(project: state.project, title: projectTitle),
-                SizedBox(height: 14.h),
-                _ActionButtons(
-                  projectId: projectId,
-                  projectTitle: projectTitle,
+            if (state is GetProjectDetailsSuccessState) {
+              return RefreshIndicator(
+                onRefresh: () =>
+                    context.read<GetProjectDetailsCubit>().refresh(projectId),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
+                  children: [
+                    _HeaderCard(project: state.project, title: projectTitle),
+                    SizedBox(height: 14.h),
+                    _ActionButtons(
+                      projectId: projectId,
+                      projectTitle: projectTitle,
+                    ),
+                    SizedBox(height: 18.h),
+                    PendingPaymentSection(project: state.project),
+                    _SectionHeader(
+                      icon: FontAwesomeIcons.handshake,
+                      title: 'Parties',
+                    ),
+                    SizedBox(height: 8.h),
+                    _PartiesCard(project: state.project),
+                    SizedBox(height: 18.h),
+                    _SectionHeader(
+                      icon: FontAwesomeIcons.chartPie,
+                      title:
+                          'Share Allocations (${state.project.shares.length})',
+                    ),
+                    SizedBox(height: 8.h),
+                    if (state.project.shares.isEmpty)
+                      _EmptyShares(totalShares: state.project.totalShares)
+                    else
+                      ...state.project.shares.map(
+                        (sa) => ShareAllocationTile(allocation: sa),
+                      ),
+                    InvestorRequestsSection(project: state.project),
+                    if (role != 'Buyer')
+                      MilestonesSection(project: state.project),
+                    if (role != 'Buyer')
+                      ExpensesSection(project: state.project),
+                    UnitsSection(project: state.project),
+                    ShareListingsSection(project: state.project),
+                    CreateListingSection(project: state.project),
+                    ProjectFeasibilitySection(project: state.project),
+                  ],
                 ),
-                SizedBox(height: 18.h),
-                PendingPaymentSection(project: state.project),
-                _SectionHeader(
-                  icon: FontAwesomeIcons.handshake,
-                  title: 'Parties',
-                ),
-                SizedBox(height: 8.h),
-                _PartiesCard(project: state.project),
-                SizedBox(height: 18.h),
-                _SectionHeader(
-                  icon: FontAwesomeIcons.chartPie,
-                  title: 'Share Allocations (${state.project.shares.length})',
-                ),
-                SizedBox(height: 8.h),
-                if (state.project.shares.isEmpty)
-                  _EmptyShares(totalShares: state.project.totalShares)
-                else
-                  ...state.project.shares.map(
-                    (sa) => ShareAllocationTile(allocation: sa),
-                  ),
-                InvestorRequestsSection(project: state.project),
-                if(role!='Buyer')
-                MilestonesSection(project: state.project),
-                if(role!='Buyer')
-                ExpensesSection(project: state.project),
-                UnitsSection(project: state.project),
-                ShareListingsSection(project: state.project),
-                CreateListingSection(project: state.project),
-                ProjectFeasibilitySection(project: state.project),
-              ],
-            ),
-          );
-        }
+              );
+            }
 
-        return const SizedBox.shrink();
+            return const SizedBox.shrink();
+          },
+        );
       },
     );
-  },
-);
   }
 }
 
@@ -184,8 +186,7 @@ class _HeaderCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8.r),
@@ -251,10 +252,7 @@ class _ActionButtons extends StatelessWidget {
   final String projectId;
   final String projectTitle;
 
-  const _ActionButtons({
-    required this.projectId,
-    required this.projectTitle,
-  });
+  const _ActionButtons({required this.projectId, required this.projectTitle});
 
   @override
   Widget build(BuildContext context) {
@@ -267,10 +265,7 @@ class _ActionButtons extends StatelessWidget {
             color: AppColors.primary,
             onTap: () => context.push(
               Routes.chat,
-              extra: {
-                'projectId': projectId,
-                'projectTitle': projectTitle,
-              },
+              extra: {'projectId': projectId, 'projectTitle': projectTitle},
             ),
           ),
         ),
@@ -282,10 +277,7 @@ class _ActionButtons extends StatelessWidget {
             color: AppColors.accent,
             onTap: () => context.push(
               Routes.contract,
-              extra: {
-                'projectId': projectId,
-                'projectTitle': projectTitle,
-              },
+              extra: {'projectId': projectId, 'projectTitle': projectTitle},
             ),
           ),
         ),
@@ -416,10 +408,7 @@ class _PartyRow extends StatelessWidget {
               ),
               Text(
                 name.isEmpty ? '—' : name,
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700),
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -480,10 +469,7 @@ class _EmptyShares extends StatelessWidget {
           Expanded(
             child: Text(
               'No shares allocated yet (out of $totalShares).',
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: AppColors.warning,
-              ),
+              style: TextStyle(fontSize: 12.sp, color: AppColors.warning),
             ),
           ),
         ],
